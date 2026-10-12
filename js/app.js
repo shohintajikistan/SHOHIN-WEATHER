@@ -1,90 +1,460 @@
 /* ==========================================
-   SHOHIN WEATHER
-   APP CONTROLLER
+   SHOHIN WEATHER V1
+   SHOHIN BRAND COLORS — НЕ МЕНЯТЬ
+   Local Tajikistan places + Open-Meteo
+========================================== */
+
+const PLACES_FILE = "./data/tajikistan-places.json";
+const GEOCODING_API = "https://geocoding-api.open-meteo.com/v1/search";
+const WEATHER_API = "https://api.open-meteo.com/v1/forecast";
+
+const state = {
+  places: [],
+  placesLoaded: false,
+  currentPlace: null,
+  currentWeather: null,
+  unit: localStorage.getItem("shw_unit") || "C",
+  favorites: loadSavedFavorites(),
+  requestNumber: 0,
+  searchTimer: null
+};
+
+/* ==========================================
+   ELEMENTS
 ========================================== */
 
 const $ = (id) => document.getElementById(id);
 
-const state = {
-  currentPlace: null,
-  currentWeather: null,
-  unit: localStorage.getItem("shw_unit") || "C",
-  favorites: loadFavorites(),
-  requestNumber: 0
+const elements = {
+  loader: $("appLoader"),
+  refresh: $("refreshButton"),
+  searchForm: $("searchForm"),
+  searchInput: $("citySearch"),
+  searchResults: $("searchResults"),
+  status: $("status"),
+
+  popularCities: $("popularCities"),
+
+  weatherCard: $("weatherCard"),
+  weatherCity: $("weatherCity"),
+  weatherDate: $("weatherDate"),
+  weatherIcon: $("weatherIcon"),
+  temperature: $("temperature"),
+  weatherDescription: $("weatherDescription"),
+
+  humidity: $("humidity"),
+  wind: $("wind"),
+  feelsLike: $("feelsLike"),
+  rain: $("rain"),
+
+  celsiusButton: $("celsiusButton"),
+  fahrenheitButton: $("fahrenheitButton"),
+
+  favoriteButton: $("favoriteButton"),
+  favoriteIcon: $("favoriteIcon"),
+  favoriteText: $("favoriteText"),
+
+  hourlySection: $("hourlySection"),
+  hourlyForecast: $("hourlyForecast"),
+
+  dailySection: $("dailySection"),
+  dailyForecast: $("dailyForecast"),
+
+  favoritesSection: $("favoritesSection"),
+  favoritesList: $("favoritesList")
 };
 
 /* ==========================================
-   LOCAL STORAGE
+   SAFE STORAGE
 ========================================== */
 
-function loadFavorites() {
+function loadSavedFavorites() {
   try {
     const saved = JSON.parse(
       localStorage.getItem("shw_favorites") || "[]"
     );
 
     return Array.isArray(saved) ? saved : [];
-  } catch {
+  } catch (error) {
     return [];
   }
 }
 
 function saveFavorites() {
-  localStorage.setItem(
-    "shw_favorites",
-    JSON.stringify(state.favorites)
-  );
-}
-
-function escapeHTML(value) {
-  return String(value ?? "").replace(/[&<>"']/g, (char) => ({
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    '"': "&quot;",
-    "'": "&#039;"
-  })[char]);
+  try {
+    localStorage.setItem(
+      "shw_favorites",
+      JSON.stringify(state.favorites)
+    );
+  } catch (error) {
+    console.warn("Не удалось сохранить избранное.");
+  }
 }
 
 /* ==========================================
-   STATUS
+   TEXT HELPERS
 ========================================== */
 
-function showStatus(message, loading = false) {
-  const box = $("status");
-  if (!box) return;
+function escapeHTML(value) {
+  return String(value ?? "").replace(/[&<>"']/g, (char) => {
+    const entities = {
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#39;"
+    };
 
-  box.hidden = false;
-  box.textContent = "";
+    return entities[char];
+  });
+}
 
-  if (loading) {
-    const spinner = document.createElement("span");
-    spinner.className = "loader";
-    spinner.setAttribute("aria-hidden", "true");
+function normalizeText(value) {
+  return String(value ?? "")
+    .toLocaleLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/ё/g, "е")
+    .replace(/ӣ/g, "и")
+    .replace(/ӯ/g, "у")
+    .replace(/қ/g, "к")
+    .replace(/ғ/g, "г")
+    .replace(/ҳ/g, "х")
+    .replace(/ъ/g, "")
+    .replace(/ь/g, "")
+    .replace(/[^a-zа-я0-9]+/gi, " ")
+    .trim();
+}
 
-    box.appendChild(spinner);
+function showStatus(message, type = "info") {
+  if (!elements.status) return;
+
+  elements.status.textContent = message;
+  elements.status.hidden = false;
+
+  elements.status.classList.remove("error", "success");
+
+  if (type === "error") {
+    elements.status.classList.add("error");
   }
 
-  box.appendChild(document.createTextNode(message));
+  if (type === "success") {
+    elements.status.classList.add("success");
+  }
 }
 
 function hideStatus() {
-  const box = $("status");
+  if (elements.status) {
+    elements.status.hidden = true;
+    elements.status.textContent = "";
+    elements.status.classList.remove("error", "success");
+  }
+}
 
-  if (box) {
-    box.hidden = true;
-    box.textContent = "";
+function hideSearchResults() {
+  if (!elements.searchResults) return;
+
+  elements.searchResults.innerHTML = "";
+  elements.searchResults.hidden = true;
+}
+
+/* ==========================================
+   LOAD TAJIKISTAN PLACES
+========================================== */
+
+async function loadPlaces() {
+  if (state.placesLoaded) {
+    return state.places;
+  }
+
+  try {
+    const response = await fetch(PLACES_FILE, {
+      cache: "no-cache"
+    });
+
+    if (!response.ok) {
+      throw new Error("HTTP " + response.status);
+    }
+
+    const data = await response.json();
+
+    if (!Array.isArray(data)) {
+      throw new Error("Неверный формат JSON");
+    }
+
+    state.places = data
+      .filter((place) => {
+        return (
+          place &&
+          place.name &&
+          Number.isFinite(Number(place.lat)) &&
+          Number.isFinite(Number(place.lon))
+        );
+      })
+      .map((place) => ({
+        id: String(place.id || place.name),
+        name: String(place.name),
+        aliases: Array.isArray(place.aliases)
+          ? place.aliases.map(String)
+          : [],
+        region: String(place.region || "Таджикистан"),
+        latitude: Number(place.lat),
+        longitude: Number(place.lon),
+        country: "Таджикистан",
+        source: "local"
+      }));
+
+    state.placesLoaded = true;
+
+    console.log(
+      "SHOHIN WEATHER: загружено местных записей:",
+      state.places.length
+    );
+
+    return state.places;
+  } catch (error) {
+    console.error("Ошибка загрузки списка мест:", error);
+
+    state.places = [];
+    state.placesLoaded = false;
+
+    return [];
   }
 }
 
 /* ==========================================
-   WEATHER DESCRIPTION
+   SEARCH LOCAL PLACES
 ========================================== */
 
-function getWeatherInfo(code, isDay = 1) {
-  const descriptions = {
-    0: ["Ясно", isDay ? "☀️" : "🌙"],
-    1: ["Преимущественно ясно", isDay ? "🌤️" : "🌙"],
+function findLocalPlaces(query, limit = 8) {
+  const normalizedQuery = normalizeText(query);
+
+  if (!normalizedQuery) return [];
+
+  const results = [];
+
+  for (const place of state.places) {
+    const names = [
+      place.name,
+      ...place.aliases,
+      place.region
+    ];
+
+    let bestScore = 0;
+
+    for (const name of names) {
+      const normalizedName = normalizeText(name);
+
+      if (!normalizedName) continue;
+
+      if (normalizedName === normalizedQuery) {
+        bestScore = Math.max(bestScore, 100);
+      } else if (
+        normalizedName.startsWith(normalizedQuery)
+      ) {
+        bestScore = Math.max(bestScore, 70);
+      } else if (
+        normalizedName.includes(normalizedQuery)
+      ) {
+        bestScore = Math.max(bestScore, 40);
+      }
+    }
+
+    if (bestScore > 0) {
+      results.push({
+        ...place,
+        score: bestScore
+      });
+    }
+  }
+
+  results.sort((a, b) => b.score - a.score);
+
+  return results.slice(0, limit);
+}
+
+/* ==========================================
+   SEARCH INTERNET
+========================================== */
+
+async function searchOnline(query) {
+  const params = new URLSearchParams({
+    name: query,
+    count: "10",
+    language: "ru",
+    format: "json",
+    countryCode: "TJ"
+  });
+
+  const response = await fetch(
+    `${GEOCODING_API}?${params.toString()}`
+  );
+
+  if (!response.ok) {
+    throw new Error("Ошибка поиска: " + response.status);
+  }
+
+  const data = await response.json();
+
+  return (data.results || [])
+    .filter((place) => {
+      return (
+        Number.isFinite(Number(place.latitude)) &&
+        Number.isFinite(Number(place.longitude))
+      );
+    })
+    .map((place) => ({
+      id: String(place.id || place.name),
+      name: place.name,
+      aliases: [],
+      region: place.admin1 || "Таджикистан",
+      latitude: Number(place.latitude),
+      longitude: Number(place.longitude),
+      country: place.country || "Таджикистан",
+      source: "online"
+    }));
+}
+
+/* ==========================================
+   SHOW SEARCH SUGGESTIONS
+========================================== */
+
+function renderSearchResults(places, query) {
+  if (!elements.searchResults) return;
+
+  if (!places.length) {
+    elements.searchResults.innerHTML = `
+      <div class="search-result">
+        <span>Маҳал ёфт нашуд</span>
+      </div>
+    `;
+
+    elements.searchResults.hidden = false;
+    return;
+  }
+
+  elements.searchResults.innerHTML = places
+    .map((place, index) => {
+      const region = place.region || "Таджикистан";
+
+      return `
+        <button
+          type="button"
+          class="search-result"
+          data-place-index="${index}"
+          aria-label="${escapeHTML(place.name)}"
+        >
+          <span class="search-result-icon" aria-hidden="true">
+            📍
+          </span>
+
+          <span class="search-result-info">
+            <strong>${escapeHTML(place.name)}</strong>
+            <small>${escapeHTML(region)}</small>
+          </span>
+        </button>
+      `;
+    })
+    .join("");
+
+  elements.searchResults.hidden = false;
+
+  elements.searchResults
+    .querySelectorAll("[data-place-index]")
+    .forEach((button) => {
+      button.addEventListener("click", () => {
+        const index = Number(button.dataset.placeIndex);
+        const place = places[index];
+
+        if (!place) return;
+
+        elements.searchInput.value = place.name;
+        hideSearchResults();
+        loadWeather(place);
+      });
+    });
+}
+
+/* ==========================================
+   SEARCH WHILE TYPING
+========================================== */
+
+async function updateSearchSuggestions() {
+  if (!elements.searchInput) return;
+
+  const query = elements.searchInput.value.trim();
+
+  if (query.length < 2) {
+    hideSearchResults();
+    return;
+  }
+
+  await loadPlaces();
+
+  const localResults = findLocalPlaces(query, 8);
+
+  if (localResults.length >= 5) {
+    renderSearchResults(localResults, query);
+    return;
+  }
+
+  try {
+    const onlineResults = await searchOnline(query);
+
+    const combined = [];
+    const seen = new Set();
+
+    for (const place of [...localResults, ...onlineResults]) {
+      const key = normalizeText(place.name);
+
+      if (!key || seen.has(key)) continue;
+
+      seen.add(key);
+      combined.push(place);
+    }
+
+    renderSearchResults(combined.slice(0, 8), query);
+  } catch (error) {
+    if (localResults.length) {
+      renderSearchResults(localResults, query);
+    } else {
+      hideSearchResults();
+    }
+  }
+}
+
+/* ==========================================
+   SEARCH A CITY
+========================================== */
+
+async function searchCity(query) {
+  await loadPlaces();
+
+  const localResults = findLocalPlaces(query, 10);
+
+  if (localResults.length) {
+    return localResults[0];
+  }
+
+  const onlineResults = await searchOnline(query);
+
+  if (onlineResults.length) {
+    return onlineResults[0];
+  }
+
+  throw new Error(
+    "Маҳал ёфт нашуд. Номро бо забони дигар нависед."
+  );
+}
+
+/* ==========================================
+   WEATHER INFORMATION
+========================================== */
+
+function getWeatherInfo(code) {
+  const weather = {
+    0: ["Ясно", "☀️"],
+    1: ["Преимущественно ясно", "🌤️"],
     2: ["Переменная облачность", "⛅"],
     3: ["Облачно", "☁️"],
     45: ["Туман", "🌫️"],
@@ -101,116 +471,87 @@ function getWeatherInfo(code, isDay = 1) {
     67: ["Сильный ледяной дождь", "🌧️"],
     71: ["Небольшой снег", "🌨️"],
     73: ["Снег", "🌨️"],
-    75: ["Сильный снегопад", "❄️"],
+    75: ["Сильный снег", "❄️"],
     77: ["Снежные зёрна", "❄️"],
     80: ["Кратковременный дождь", "🌦️"],
     81: ["Ливень", "🌧️"],
     82: ["Сильный ливень", "⛈️"],
-    85: ["Снегопад", "🌨️"],
+    85: ["Слабый снегопад", "🌨️"],
     86: ["Сильный снегопад", "❄️"],
     95: ["Гроза", "⛈️"],
     96: ["Гроза с градом", "⛈️"],
     99: ["Сильная гроза с градом", "⛈️"]
   };
 
-  return descriptions[code] || ["Неизвестные условия", "🌡️"];
-}
-
-/* ==========================================
-   CITY SEARCH
-========================================== */
-
-function normalizeText(text) {
-  return String(text || "")
-    .toLowerCase()
-    .trim()
-    .replace(/ё/g, "е")
-    .replace(/ъ/g, "")
-    .replace(/ь/g, "")
-    .replace(/[ʻʼ']/g, "")
-    .replace(/[-_]/g, " ")
-    .replace(/\s+/g, " ");
-}
-
-async function searchCity(query) {
-  const normalized = normalizeText(query);
-
-  if (!normalized) {
-    return null;
-  }
-
-  const url = new URL(
-    "https://geocoding-api.open-meteo.com/v1/search"
-  );
-
-  url.searchParams.set("name", query.trim());
-  url.searchParams.set("count", "10");
-  url.searchParams.set("language", "ru");
-  url.searchParams.set("format", "json");
-  url.searchParams.set("countryCode", "TJ");
-
-  const response = await fetch(url.toString());
-
-  if (!response.ok) {
-    throw new Error("Не удалось найти город.");
-  }
-
-  const data = await response.json();
-  const results = data.results || [];
-
-  if (!results.length) {
-    return null;
-  }
-
-  const exact = results.find((place) =>
-    normalizeText(place.name) === normalized &&
-    place.country_code === "TJ"
-  );
-
-  return exact || results.find(
-    (place) => place.country_code === "TJ"
-  ) || null;
+  return weather[code] || ["Погода неизвестна", "🌡️"];
 }
 
 /* ==========================================
    LOAD WEATHER
 ========================================== */
 
-async function loadWeather(cityName) {
-  const query = String(cityName || "").trim();
+async function loadWeather(placeOrName) {
+  const requestNumber = ++state.requestNumber;
 
-  if (!query) {
-    showStatus("Введи название города.");
-    return;
+  hideStatus();
+  hideSearchResults();
+
+  if (elements.weatherCard) {
+    elements.weatherCard.hidden = true;
   }
 
-  const thisRequest = ++state.requestNumber;
+  if (elements.hourlySection) {
+    elements.hourlySection.hidden = true;
+  }
 
-  showStatus("Загружаем погоду...", true);
+  if (elements.dailySection) {
+    elements.dailySection.hidden = true;
+  }
 
-  const card = $("weatherCard");
-  if (card) card.hidden = true;
+  const refreshText = elements.refresh
+    ? elements.refresh.textContent
+    : "";
+
+  if (elements.refresh) {
+    elements.refresh.disabled = true;
+    elements.refresh.setAttribute("aria-busy", "true");
+  }
+
+  showStatus("Обу ҳаворо бор карда истодаем…");
 
   try {
-    const place = await searchCity(query);
+    let place = placeOrName;
 
-    if (thisRequest !== state.requestNumber) return;
+    if (typeof placeOrName === "string") {
+      place = await searchCity(placeOrName);
+    }
 
     if (!place) {
-      showStatus(
-        "Город не найден. Проверь написание или попробуй другое название."
-      );
-      return;
+      throw new Error("Маҳал муайян нашуд.");
+    }
+
+    const latitude = Number(
+      place.latitude ?? place.lat
+    );
+
+    const longitude = Number(
+      place.longitude ?? place.lon
+    );
+
+    if (
+      !Number.isFinite(latitude) ||
+      !Number.isFinite(longitude)
+    ) {
+      throw new Error("Координатҳои маҳал нодурустанд.");
     }
 
     const params = new URLSearchParams({
-      latitude: String(place.latitude),
-      longitude: String(place.longitude),
+      latitude: String(latitude),
+      longitude: String(longitude),
       current: [
         "temperature_2m",
         "relative_humidity_2m",
         "apparent_temperature",
-        "is_day",
         "precipitation",
         "weather_code",
         "wind_speed_10m"
@@ -224,39 +565,40 @@ async function loadWeather(cityName) {
         "weather_code",
         "temperature_2m_max",
         "temperature_2m_min",
-        "precipitation_probability_max"
+        "sunrise",
+        "sunset"
       ].join(","),
       forecast_days: "7",
       timezone: "auto"
     });
 
     const response = await fetch(
-      "https://api.open-meteo.com/v1/forecast?" +
-      params.toString()
+      `${WEATHER_API}?${params.toString()}`
     );
 
     if (!response.ok) {
-      throw new Error("Сервис погоды недоступен.");
+      throw new Error(
+        "Хадамоти обу ҳаво ҷавоб надод: " + response.status
+      );
     }
 
-    const data = await response.json();
+    const weather = await response.json();
 
-    if (thisRequest !== state.requestNumber) return;
+    if (requestNumber !== state.requestNumber) {
+      return;
+    }
 
-    if (!data.current) {
-      throw new Error("Нет данных о погоде.");
+    if (!weather.current) {
+      throw new Error("Маълумоти обу ҳаво дастрас нест.");
     }
 
     state.currentPlace = {
-      id: String(place.id || place.name + "_" + place.latitude),
-      name: place.name,
-      latitude: place.latitude,
-      longitude: place.longitude,
-      admin1: place.admin1 || "",
-      country: place.country || "Таджикистан"
+      ...place,
+      latitude,
+      longitude
     };
 
-    state.currentWeather = data;
+    state.currentWeather = weather;
 
     renderWeather();
     renderHourlyForecast();
@@ -264,24 +606,39 @@ async function loadWeather(cityName) {
     updateFavoriteButton();
     renderFavorites();
 
-    hideStatus();
-
-    if (card) {
-      card.hidden = false;
-      card.scrollIntoView({
-        behavior: "smooth",
-        block: "start"
-      });
+    if (elements.weatherCard) {
+      elements.weatherCard.hidden = false;
     }
 
+    if (elements.hourlySection) {
+      elements.hourlySection.hidden = false;
+    }
+
+    if (elements.dailySection) {
+      elements.dailySection.hidden = false;
+    }
+
+    hideStatus();
   } catch (error) {
-    if (thisRequest !== state.requestNumber) return;
+    if (requestNumber !== state.requestNumber) {
+      return;
+    }
 
     console.error("SHOHIN WEATHER:", error);
 
     showStatus(
-      "Не удалось загрузить погоду. Проверь интернет и попробуй ещё раз."
+      error.message ||
+      "Хато шуд. Интернетро санҷед ва аз нав кӯшиш кунед.",
+      "error"
     );
+  } finally {
+    if (requestNumber === state.requestNumber) {
+      if (elements.refresh) {
+        elements.refresh.disabled = false;
+        elements.refresh.removeAttribute("aria-busy");
+        elements.refresh.textContent = refreshText || "↻";
+      }
+    }
   }
 }
 
@@ -290,45 +647,55 @@ async function loadWeather(cityName) {
 ========================================== */
 
 function convertTemperature(celsius) {
-  if (celsius === null || celsius === undefined) {
-    return "--";
+  if (state.unit === "F") {
+    return (celsius * 9) / 5 + 32;
   }
 
-  const value = state.unit === "F"
-    ? celsius * 9 / 5 + 32
-    : celsius;
-
-  return Math.round(value);
+  return celsius;
 }
 
 function temperatureText(value) {
-  return convertTemperature(value) + "°" + state.unit;
+  if (!Number.isFinite(Number(value))) {
+    return "—";
+  }
+
+  return Math.round(convertTemperature(Number(value))) + "°";
+}
+
+function updateUnitButtons() {
+  if (elements.celsiusButton) {
+    const active = state.unit === "C";
+
+    elements.celsiusButton.classList.toggle("active", active);
+    elements.celsiusButton.setAttribute(
+      "aria-pressed",
+      String(active)
+    );
+  }
+
+  if (elements.fahrenheitButton) {
+    const active = state.unit === "F";
+
+    elements.fahrenheitButton.classList.toggle("active", active);
+    elements.fahrenheitButton.setAttribute(
+      "aria-pressed",
+      String(active)
+    );
+  }
 }
 
 function changeUnit(unit) {
-  state.unit = unit === "F" ? "F" : "C";
+  if (unit !== "C" && unit !== "F") return;
 
-  localStorage.setItem("shw_unit", state.unit);
+  state.unit = unit;
 
-  $("celsiusButton")?.classList.toggle(
-    "active",
-    state.unit === "C"
-  );
+  try {
+    localStorage.setItem("shw_unit", unit);
+  } catch (error) {
+    // Продолжаем работу без сохранения настройки.
+  }
 
-  $("fahrenheitButton")?.classList.toggle(
-    "active",
-    state.unit === "F"
-  );
-
-  $("celsiusButton")?.setAttribute(
-    "aria-pressed",
-    String(state.unit === "C")
-  );
-
-  $("fahrenheitButton")?.setAttribute(
-    "aria-pressed",
-    String(state.unit === "F")
-  );
+  updateUnitButtons();
 
   if (state.currentWeather) {
     renderWeather();
@@ -338,58 +705,85 @@ function changeUnit(unit) {
 }
 
 /* ==========================================
-   CURRENT WEATHER
+   DATE
+========================================== */
+
+function formatDate(dateString, options = {}) {
+  if (!dateString) return "";
+
+  const date = new Date(dateString);
+
+  if (Number.isNaN(date.getTime())) {
+    return dateString;
+  }
+
+  return new Intl.DateTimeFormat("ru-RU", options).format(date);
+}
+
+/* ==========================================
+   RENDER CURRENT WEATHER
 ========================================== */
 
 function renderWeather() {
-  const place = state.currentPlace;
-  const data = state.currentWeather;
+  if (!state.currentWeather || !state.currentPlace) {
+    return;
+  }
 
-  if (!place || !data || !data.current) return;
+  const weather = state.currentWeather;
+  const current = weather.current;
+  const info = getWeatherInfo(current.weather_code);
 
-  const current = data.current;
-  const info = getWeatherInfo(
-    current.weather_code,
-    current.is_day
-  );
+  if (elements.weatherCity) {
+    elements.weatherCity.textContent = state.currentPlace.name;
+  }
 
-  $("weatherCity").textContent = place.name;
+  if (elements.weatherDate) {
+    elements.weatherDate.textContent = formatDate(
+      current.time,
+      {
+        weekday: "long",
+        day: "numeric",
+        month: "long"
+      }
+    );
+  }
 
-  $("weatherDate").textContent =
-    "Обновлено: " +
-    new Date(current.time).toLocaleString("ru-RU", {
-      day: "numeric",
-      month: "long",
-      hour: "2-digit",
-      minute: "2-digit"
-    });
+  if (elements.weatherIcon) {
+    elements.weatherIcon.textContent = info[1];
+  }
 
-  $("weatherIcon").textContent = info[1];
-  $("temperature").textContent =
-    temperatureText(current.temperature_2m);
+  if (elements.temperature) {
+    elements.temperature.textContent = temperatureText(
+      current.temperature_2m
+    );
+  }
 
-  $("weatherDescription").textContent = info[0];
+  if (elements.weatherDescription) {
+    elements.weatherDescription.textContent = info[0];
+  }
 
-  $("humidity").textContent =
-    current.relative_humidity_2m + "%";
+  if (elements.humidity) {
+    elements.humidity.textContent =
+      current.relative_humidity_2m + "%";
+  }
 
-  $("wind").textContent =
-    Math.round(current.wind_speed_10m) + " км/ч";
+  if (elements.wind) {
+    elements.wind.textContent =
+      Math.round(current.wind_speed_10m) + " км/ч";
+  }
 
-  $("feelsLike").textContent =
-    temperatureText(current.apparent_temperature);
+  if (elements.feelsLike) {
+    elements.feelsLike.textContent = temperatureText(
+      current.apparent_temperature
+    );
+  }
 
-  const hourly = data.hourly;
-  const timeIndex = hourly?.time?.indexOf(current.time) ?? -1;
+  if (elements.rain) {
+    elements.rain.textContent =
+      current.precipitation + " мм";
+  }
 
-  const probability = timeIndex >= 0
-    ? hourly.precipitation_probability[timeIndex]
-    : null;
-
-  $("rain").textContent =
-    probability === null || probability === undefined
-      ? "Нет данных"
-      : probability + "%";
+  updateUnitButtons();
 }
 
 /* ==========================================
@@ -397,18 +791,29 @@ function renderWeather() {
 ========================================== */
 
 function renderHourlyForecast() {
-  const section = $("hourlySection");
-  const container = $("hourlyForecast");
-  const hourly = state.currentWeather?.hourly;
+  if (
+    !state.currentWeather ||
+    !elements.hourlyForecast
+  ) {
+    return;
+  }
 
-  if (!section || !container || !hourly) return;
+  const weather = state.currentWeather;
+  const hourly = weather.hourly;
 
-  const currentTime = state.currentWeather.current.time;
-  let startIndex = hourly.time.findIndex(
-    (time) => time >= currentTime
-  );
+  if (!hourly || !Array.isArray(hourly.time)) {
+    elements.hourlyForecast.innerHTML = "";
+    return;
+  }
 
-  if (startIndex < 0) startIndex = 0;
+  const currentTime = weather.current.time;
+  let startIndex = hourly.time.findIndex((time) => {
+    return time >= currentTime;
+  });
+
+  if (startIndex < 0) {
+    startIndex = 0;
+  }
 
   const endIndex = Math.min(
     startIndex + 12,
@@ -418,102 +823,84 @@ function renderHourlyForecast() {
   let html = "";
 
   for (let i = startIndex; i < endIndex; i++) {
-    const date = new Date(hourly.time[i]);
     const info = getWeatherInfo(hourly.weather_code[i]);
+
+    const hour = formatDate(
+      hourly.time[i],
+      {
+        hour: "2-digit",
+        minute: "2-digit"
+      }
+    );
+
+    const rainProbability =
+      hourly.precipitation_probability?.[i];
 
     html += `
       <div class="hour-item">
-        <div class="hour-time">
-          ${escapeHTML(
-            i === startIndex
-              ? "Сейчас"
-              : date.toLocaleTimeString("ru-RU", {
-                  hour: "2-digit",
-                  minute: "2-digit"
-                })
-          )}
-        </div>
-
-        <div class="hour-icon">${info[1]}</div>
-
-        <div class="hour-temperature">
-          ${temperatureText(hourly.temperature_2m[i])}
-        </div>
-
-        <div class="hour-rain">
-          ${hourly.precipitation_probability[i] ?? 0}%
-        </div>
+        <span>${escapeHTML(hour)}</span>
+        <span class="hour-icon">${info[1]}</span>
+        <strong>${temperatureText(
+          hourly.temperature_2m[i]
+        )}</strong>
+        <small>${
+          Number.isFinite(Number(rainProbability))
+            ? Math.round(rainProbability) + "%"
+            : ""
+        }</small>
       </div>
     `;
   }
 
-  container.innerHTML = html;
-  section.hidden = false;
+  elements.hourlyForecast.innerHTML = html;
 }
 
 /* ==========================================
-   DAILY FORECAST
+   SEVEN-DAY FORECAST
 ========================================== */
 
 function renderDailyForecast() {
-  const section = $("dailySection");
-  const container = $("dailyForecast");
-  const daily = state.currentWeather?.daily;
+  if (
+    !state.currentWeather ||
+    !elements.dailyForecast
+  ) {
+    return;
+  }
 
-  if (!section || !container || !daily) return;
+  const daily = state.currentWeather.daily;
+
+  if (!daily || !Array.isArray(daily.time)) {
+    elements.dailyForecast.innerHTML = "";
+    return;
+  }
 
   let html = "";
 
   for (let i = 0; i < daily.time.length; i++) {
-    const date = new Date(daily.time[i] + "T12:00:00");
     const info = getWeatherInfo(daily.weather_code[i]);
 
     const dayName = i === 0
       ? "Сегодня"
-      : date.toLocaleDateString("ru-RU", {
-          weekday: "short"
-        });
-
-    const rain = daily.precipitation_probability_max[i];
+      : formatDate(
+          daily.time[i],
+          { weekday: "short" }
+        );
 
     html += `
       <div class="daily-item">
-        <div class="daily-day">
-          ${escapeHTML(dayName)}
-          <small>
-            ${escapeHTML(
-              date.toLocaleDateString("ru-RU", {
-                day: "numeric",
-                month: "short"
-              })
-            )}
-          </small>
-        </div>
-
-        <div class="daily-condition">
-          <span>${info[1]}</span>
-          <span>${escapeHTML(info[0])}</span>
-        </div>
-
-        <div class="daily-rain">
-          ${rain ?? 0}%
-        </div>
-
-        <div class="daily-temperatures">
-          <strong>
-            ${temperatureText(daily.temperature_2m_max[i])}
-          </strong>
-
-          <span>
-            ${temperatureText(daily.temperature_2m_min[i])}
-          </span>
-        </div>
+        <span>${escapeHTML(dayName)}</span>
+        <span class="daily-icon">${info[1]}</span>
+        <strong>${temperatureText(
+          daily.temperature_2m_max[i]
+        )}</strong>
+        <small>${temperatureText(
+          daily.temperature_2m_min[i]
+        )}</small>
       </div>
     `;
   }
 
-  container.innerHTML = html;
-  section.hidden = false;
+  elements.dailyForecast.innerHTML = html;
 }
 
 /* ==========================================
@@ -521,43 +908,80 @@ function renderDailyForecast() {
 ========================================== */
 
 function isFavorite(place) {
-  return state.favorites.some(
-    (item) => item.id === place.id
-  );
+  if (!place) return false;
+
+  return state.favorites.some((favorite) => {
+    if (favorite.id && place.id) {
+      return String(favorite.id) === String(place.id);
+    }
+
+    return (
+      normalizeText(favorite.name) ===
+      normalizeText(place.name)
+    );
+  });
 }
 
 function updateFavoriteButton() {
-  const place = state.currentPlace;
-  if (!place) return;
-
-  const favorite = isFavorite(place);
-
-  $("favoriteIcon").textContent = favorite ? "★" : "☆";
-
-  $("favoriteText").textContent = favorite
-    ? "Убрать из избранного"
-    : "Добавить в избранное";
-
-  $("favoriteButton").setAttribute(
-    "aria-pressed",
-    String(favorite)
-  );
-}
-
-function toggleFavorite() {
-  const place = state.currentPlace;
-
-  if (!place) {
-    showStatus("Сначала выбери город.");
+  if (
+    !elements.favoriteButton ||
+    !state.currentPlace
+  ) {
     return;
   }
 
-  if (isFavorite(place)) {
-    state.favorites = state.favorites.filter(
-      (item) => item.id !== place.id
-    );
+  const favorite = isFavorite(state.currentPlace);
+
+  elements.favoriteButton.classList.toggle(
+    "active",
+    favorite
+  );
+
+  elements.favoriteButton.setAttribute(
+    "aria-pressed",
+    String(favorite)
+  );
+
+  if (elements.favoriteIcon) {
+    elements.favoriteIcon.textContent = favorite
+      ? "★"
+      : "☆";
+  }
+
+  if (elements.favoriteText) {
+    elements.favoriteText.textContent = favorite
+      ? "В избранном"
+      : "В избранное";
+  }
+}
+
+function toggleFavorite() {
+  if (!state.currentPlace) return;
+
+  const place = state.currentPlace;
+  const existingIndex = state.favorites.findIndex(
+    (favorite) => {
+      if (favorite.id && place.id) {
+        return String(favorite.id) === String(place.id);
+      }
+
+      return (
+        normalizeText(favorite.name) ===
+        normalizeText(place.name)
+      );
+    }
+  );
+
+  if (existingIndex >= 0) {
+    state.favorites.splice(existingIndex, 1);
   } else {
-    state.favorites.push(place);
+    state.favorites.push({
+      id: String(place.id || place.name),
+      name: place.name,
+      region: place.region || "Таджикистан",
+      latitude: Number(place.latitude),
+      longitude: Number(place.longitude)
+    });
   }
 
   saveFavorites();
@@ -566,106 +990,156 @@ function toggleFavorite() {
 }
 
 function renderFavorites() {
-  const section = $("favoritesSection");
-  const container = $("favoritesList");
+  if (!elements.favoritesList) return;
 
-  if (!section || !container) return;
+  if (elements.favoritesSection) {
+    elements.favoritesSection.hidden =
+      state.favorites.length === 0;
+  }
 
   if (!state.favorites.length) {
-    section.hidden = true;
-    container.innerHTML = "";
+    elements.favoritesList.innerHTML = "";
     return;
   }
 
-  section.hidden = false;
+  elements.favoritesList.innerHTML =
+    state.favorites.map((place, index) => `
+      <button
+        type="button"
+        class="favorite-city"
+        data-favorite-index="${index}"
+      >
+        <span>📍</span>
+        <span>
+          <strong>${escapeHTML(place.name)}</strong>
+          <small>${escapeHTML(place.region || "")}</small>
+        </span>
+      </button>
+    `).join("");
 
-  container.innerHTML = state.favorites.map((place) => `
-    <button
-      class="favorite-city"
-      type="button"
-      data-favorite-id="${escapeHTML(place.id)}"
-    >
-      <span>📍</span>
-      <span>${escapeHTML(place.name)}</span>
-      <span>›</span>
-    </button>
-  `).join("");
+  elements.favoritesList
+    .querySelectorAll("[data-favorite-index]")
+    .forEach((button) => {
+      button.addEventListener("click", () => {
+        const index = Number(button.dataset.favoriteIndex);
+        const place = state.favorites[index];
+
+        if (place) {
+          loadWeather(place);
+        }
+      });
+    });
 }
 
 /* ==========================================
-   EVENTS
+   EVENT LISTENERS
 ========================================== */
 
-$("searchForm")?.addEventListener("submit", (event) => {
-  event.preventDefault();
-  loadWeather($("citySearch").value);
-});
+if (elements.searchForm) {
+  elements.searchForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
 
-$("popularCities")?.addEventListener("click", (event) => {
-  const button = event.target.closest("[data-city]");
+    const query = elements.searchInput?.value.trim();
 
-  if (!button) return;
+    if (!query) {
+      showStatus("Номи шаҳр ё маҳалро нависед.", "error");
+      return;
+    }
 
-  $("citySearch").value = button.dataset.city;
-  loadWeather(button.dataset.city);
-});
+    hideSearchResults();
 
-$("refreshButton")?.addEventListener("click", () => {
-  if (state.currentPlace) {
-    loadWeather(state.currentPlace.name);
-  } else {
-    loadWeather("Душанбе");
+    await loadWeather(query);
+  });
+}
+
+if (elements.searchInput) {
+  elements.searchInput.addEventListener("input", () => {
+    clearTimeout(state.searchTimer);
+
+    state.searchTimer = setTimeout(() => {
+      updateSearchSuggestions();
+    }, 300);
+  });
+
+  elements.searchInput.addEventListener("focus", () => {
+    if (elements.searchInput.value.trim().length >= 2) {
+      updateSearchSuggestions();
+    }
+  });
+}
+
+document.addEventListener("click", (event) => {
+  if (!elements.searchForm) return;
+
+  if (!elements.searchForm.contains(event.target)) {
+    hideSearchResults();
   }
 });
 
-$("celsiusButton")?.addEventListener("click", () => {
-  changeUnit("C");
-});
+if (elements.refresh) {
+  elements.refresh.addEventListener("click", () => {
+    if (state.currentPlace) {
+      loadWeather(state.currentPlace);
+    } else {
+      loadWeather("Душанбе");
+    }
+  });
+}
 
-$("fahrenheitButton")?.addEventListener("click", () => {
-  changeUnit("F");
-});
+if (elements.celsiusButton) {
+  elements.celsiusButton.addEventListener("click", () => {
+    changeUnit("C");
+  });
+}
 
-$("favoriteButton")?.addEventListener("click", toggleFavorite);
+if (elements.fahrenheitButton) {
+  elements.fahrenheitButton.addEventListener("click", () => {
+    changeUnit("F");
+  });
+}
 
-$("favoritesList")?.addEventListener("click", (event) => {
-  const button = event.target.closest("[data-favorite-id]");
-
-  if (!button) return;
-
-  const place = state.favorites.find(
-    (item) => item.id === button.dataset.favoriteId
+if (elements.favoriteButton) {
+  elements.favoriteButton.addEventListener(
+    "click",
+    toggleFavorite
   );
+}
 
-  if (place) {
-    $("citySearch").value = place.name;
-    loadWeather(place.name);
-  }
-});
+/* ==========================================
+   POPULAR CITIES
+========================================== */
+
+if (elements.popularCities) {
+  elements.popularCities.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-city]");
+
+    if (!button) return;
+
+    const city = button.dataset.city;
+
+    if (city) {
+      loadWeather(city);
+    }
+  });
+}
 
 /* ==========================================
    START APP
 ========================================== */
 
-function startApp() {
+async function startApp() {
+  updateUnitButtons();
   renderFavorites();
-  changeUnit(state.unit);
 
-  const loader = $("appLoader");
-
-  if (loader) {
-    setTimeout(() => {
-      loader.classList.add("loader-hidden");
-
-      setTimeout(() => loader.remove(), 350);
-    }, 400);
-  }
+  await loadPlaces();
 
   loadWeather("Душанбе");
+
+  if (elements.loader) {
+    setTimeout(() => {
+      elements.loader.classList.add("loader-hidden");
+    }, 450);
+  }
 }
 
-if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", startApp);
-} else {
-  startApp();
-}
+startApp();
