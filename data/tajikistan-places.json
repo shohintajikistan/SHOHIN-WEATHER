@@ -1,0 +1,498 @@
+[
+{
+"id": "dushanbe",
+"name": "Душанбе",
+"aliases": ["Dushanbe", "Душанбе", "Душанбе шаҳри"],
+"region": "Душанбе",
+"lat": 38.5598,
+"lon": 68.7870
+},
+{
+"id": "khujand",
+"name": "Хуҷанд",
+"aliases": ["Khujand", "Худжанд", "Хуҷанд"],
+"region": "Суғд",
+"lat": 40.2826,
+"lon": 69.6222
+},
+{
+"id": "bokhtar",
+"name": "Бохтар",
+"aliases": ["Bokhtar", "Бохтар", "Қӯрғонтеппа", "Kurgan-Tyube"],
+"region": "Хатлон",
+"lat": 37.8340,
+"lon": 68.7810
+},
+{
+"id": "kulob",
+"name": "Кӯлоб",
+"aliases": ["Kulob", "Kulyab", "Куляб", "Кӯлоб"],
+"region": "Хатлон",
+"lat": 37.9146,
+"lon": 69.7845
+},
+{
+"id": "khorugh",
+"name": "Хоруғ",
+"aliases": ["Khorugh", "Khorog", "Хорог", "Хоруғ"],
+"region": "ВМКБ",
+"lat": 37.4897,
+"lon": 71.5530
+},
+{
+"id": "istaravshan",
+"name": "Истаравшан",
+"aliases": ["Istaravshan", "Ura-Tyube", "Ура-Тюбе", "Истаравшан"],
+"region": "Суғд",
+"lat": 39.9109,
+"lon": 69.0065
+},
+{
+"id": "isfara",
+"name": "Исфара",
+"aliases": ["Isfara", "Исфара"],
+"region": "Суғд",
+"lat": 40.1265,
+"lon": 70.6253
+},
+{
+"id": "kanibadam",
+"name": "Конибодом",
+"aliases": ["Kanibadam", "Konibodom", "Канибадам", "Конибодом"],
+"region": "Суғд",
+"lat": 40.2929,
+"lon": 70.4270
+},
+{
+"id": "panjakent",
+"name": "Панҷакент",
+"aliases": ["Panjakent", "Penjikent", "Пенджикент", "Панҷакент"],
+"region": "Суғд",
+"lat": 39.4952,
+"lon": 67.6093
+},
+{
+"id": "konibodom",
+"name": "Ашт",
+"aliases": ["Asht", "Ашт", "Шайдон", "Shaydon"],
+"region": "Суғд",
+"lat": 40.1510,
+"lon": 69.3860
+},
+{
+"id": "guliston",
+"name": "Гулистон",
+"aliases": ["Guliston", "Қайроққум", "Kayrakkum", "Гулистон"],
+"region": "Суғд",
+"lat": 40.2580,
+"lon": 69.7700
+},
+{
+"id": "buston",
+"name": "Бӯстон",
+"aliases": ["Buston", "Чкаловск", "Chkalovsk", "Бустон"],
+"region": "Суғд",
+"lat": 40.2340,
+"lon": 69.7050
+},
+{
+"id": "istiklol",
+"name": "Истиқлол",
+"aliases": ["Istiqlol", "Taboshar", "Табошар", "Истиқлол"],
+"region": "Суғд",
+"lat": 40.2150,
+"lon": 69.6270
+},
+{
+"id": "vahdat",
+"name": "Ваҳдат",
+"aliases": ["Vahdat", "Yangi-Bazar", "Янги-Базар", "Ваҳдат"],
+"region": "Ноҳияҳои тобеи ҷумҳурӣ",
+"lat": 38.5560,
+"lon": 68.7790
+},
+{
+"id": "hisor",
+"name": "Ҳисор",
+"aliases": ["Hisor", "Hissar", "Гиссар", "Ҳисор"],
+"region": "Ноҳияҳои тобеи ҷумҳурӣ",
+"lat": 38.5250,
+"lon": 68.5510
+},
+{
+"id": "tursunzoda",
+"name": "Турсунзода",
+"aliases": ["Tursunzoda", "Regar", "Регар", "Турсунзода"],
+"region": "Ноҳияҳои тобеи ҷумҳурӣ",
+"lat": 38.5127,
+"lon": 68.2316
+},
+{
+"id": "rogun",
+"name": "Роғун",
+"aliases": ["Rogun", "Рогун", "Роғун"],
+"region": "Ноҳияҳои тобеи ҷумҳурӣ",
+"lat": 38.6930,
+"lon": 69.7360
+},
+{
+"id": "nurek",
+"name": "Норак",
+"aliases": ["Nurek", "Norak", "Нурек", "Норак"],
+"region": "Хатлон",
+"lat": 38.3892,
+"lon": 69.3227
+},
+{
+"id": "danghara",
+"name": "Данғара",
+"aliases": ["Danghara", "Дангара", "Данғара"],
+"region": "Хатлон",
+"lat": 38.0958,
+"lon": 69.3380
+},
+{
+"id": "vose",
+"name": "Восеъ",
+"aliases": ["Vose", "Восе", "Восеъ"],
+"region": "Хатлон",
+"lat": 37.8030,
+"lon": 69.6440
+},
+{
+"id": "moskovskiy",
+"name": "Меҳнатобод",
+"aliases": ["Mehnatobod", "Мехнатобод"],
+"region": "Хатлон",
+"lat": 37.3000,
+"lon": 68.1500
+},
+{
+"id": "levakant",
+"name": "Левакант",
+"aliases": ["Levakant", "Sarband", "Сарбанд", "Левакант"],
+"region": "Хатлон",
+"lat": 37.8660,
+"lon": 68.9220
+},
+{
+"id": "norak",
+"name": "Фархор",
+"aliases": ["Farkhor", "Фархор"],
+"region": "Хатлон",
+"lat": 37.4920,
+"lon": 69.4030
+},
+{
+"id": "jilikul",
+"name": "Дӯстӣ",
+"aliases": ["Dusty", "Jilikul", "Дусти", "Ҷиликӯл"],
+"region": "Хатлон",
+"lat": 37.3480,
+"lon": 68.6630
+},
+{
+"id": "shahritus",
+"name": "Шаҳритус",
+"aliases": ["Shahritus", "Shaartuz", "Шаартуз", "Шаҳритус"],
+"region": "Хатлон",
+"lat": 37.2630,
+"lon": 68.1380
+},
+{
+"id": "qubodiyon",
+"name": "Қубодиён",
+"aliases": ["Qubodiyon", "Kabodiyon", "Кабадиян", "Қубодиён"],
+"region": "Хатлон",
+"lat": 37.4100,
+"lon": 68.1860
+},
+{
+"id": "nosiri-khusraw",
+"name": "Носири Хусрав",
+"aliases": ["Nosiri Khusraw", "Носири Хусрав"],
+"region": "Хатлон",
+"lat": 37.1900,
+"lon": 68.1100
+},
+{
+"id": "panj",
+"name": "Панҷ",
+"aliases": ["Panj", "Пяндж", "Панҷ"],
+"region": "Хатлон",
+"lat": 37.2360,
+"lon": 69.0990
+},
+{
+"id": "hamadoni",
+"name": "Ҳамадонӣ",
+"aliases": ["Hamadoni", "Московский", "Московский район", "Ҳамадонӣ"],
+"region": "Хатлон",
+"lat": 37.6400,
+"lon": 69.6200
+},
+{
+"id": "temurmalik",
+"name": "Темурмалик",
+"aliases": ["Temurmalik", "Sovetskiy", "Советский", "Темурмалик"],
+"region": "Хатлон",
+"lat": 38.0700,
+"lon": 69.5000
+},
+{
+"id": "baljuvon",
+"name": "Балҷувон",
+"aliases": ["Baljuvon", "Балджувон", "Балҷувон"],
+"region": "Хатлон",
+"lat": 38.3090,
+"lon": 69.6720
+},
+{
+"id": "khovaling",
+"name": "Ховалинг",
+"aliases": ["Khovaling", "Ховалинг"],
+"region": "Хатлон",
+"lat": 38.3440,
+"lon": 69.9750
+},
+{
+"id": "muminobod",
+"name": "Муъминобод",
+"aliases": ["Muminobod", "Муминабад", "Муъминобод"],
+"region": "Хатлон",
+"lat": 38.1070,
+"lon": 70.0320
+},
+{
+"id": "shamsiddin-shohin",
+"name": "Шамсиддин Шоҳин",
+"aliases": ["Shamsiddin Shohin", "Шамсиддин Шохин"],
+"region": "Хатлон",
+"lat": 37.2500,
+"lon": 70.0500
+},
+{
+"id": "darvoz",
+"name": "Қалъаи Хумб",
+"aliases": ["Qalai Khumb", "Kalai Khumb", "Калай-Хумб", "Қалъаи Хумб"],
+"region": "ВМКБ",
+"lat": 38.4520,
+"lon": 70.7850
+},
+{
+"id": "ishkoshim",
+"name": "Ишкошим",
+"aliases": ["Ishkoshim", "Ishkashim", "Ишкашим", "Ишкошим"],
+"region": "ВМКБ",
+"lat": 36.7240,
+"lon": 71.6130
+},
+{
+"id": "murghob",
+"name": "Мурғоб",
+"aliases": ["Murghob", "Murgab", "Мургаб", "Мурғоб"],
+"region": "ВМКБ",
+"lat": 38.1700,
+"lon": 73.9660
+},
+{
+"id": "rushon",
+"name": "Рӯшон",
+"aliases": ["Rushon", "Rushan", "Рушан", "Рӯшон"],
+"region": "ВМКБ",
+"lat": 37.9450,
+"lon": 71.5580
+},
+{
+"id": "vanj",
+"name": "Ванҷ",
+"aliases": ["Vanj", "Ванч", "Ванҷ"],
+"region": "ВМКБ",
+"lat": 38.3700,
+"lon": 71.4540
+},
+{
+"id": "roshtqala",
+"name": "Роштқалъа",
+"aliases": ["Roshtqala", "Roshtkala", "Рошткала", "Роштқалъа"],
+"region": "ВМКБ",
+"lat": 37.2600,
+"lon": 71.8200
+},
+{
+"id": "murghob-center",
+"name": "Аличур",
+"aliases": ["Alichur", "Аличур"],
+"region": "ВМКБ",
+"lat": 37.6700,
+"lon": 73.0500
+},
+{
+"id": "rasht",
+"name": "Ғарм",
+"aliases": ["Gharm", "Garm", "Гарм", "Ғарм", "Рашт"],
+"region": "Ноҳияҳои тобеи ҷумҳурӣ",
+"lat": 39.0000,
+"lon": 70.3740
+},
+{
+"id": "lakhsh",
+"name": "Ваҳдат",
+"aliases": ["Lakhsh", "Jirgatal", "Ҷиргатол", "Лахш"],
+"region": "Ноҳияҳои тобеи ҷумҳурӣ",
+"lat": 39.0800,
+"lon": 71.2300
+},
+{
+"id": "sangvor",
+"name": "Тавилдара",
+"aliases": ["Sangvor", "Tavildara", "Тавилдара", "Сангвор"],
+"region": "Ноҳияҳои тобеи ҷумҳурӣ",
+"lat": 38.6900,
+"lon": 70.5100
+},
+{
+"id": "tojikobod",
+"name": "Тоҷикобод",
+"aliases": ["Tojikobod", "Таджикабад", "Тоҷикобод"],
+"region": "Ноҳияҳои тобеи ҷумҳурӣ",
+"lat": 38.9800,
+"lon": 70.1700
+},
+{
+"id": "nurabad",
+"name": "Нуробод",
+"aliases": ["Nurabad", "Darband", "Дербанд", "Нуробод"],
+"region": "Ноҳияҳои тобеи ҷумҳурӣ",
+"lat": 38.8500,
+"lon": 69.8800
+},
+{
+"id": "faizobod",
+"name": "Файзобод",
+"aliases": ["Faizobod", "Файзабад", "Файзобод"],
+"region": "Ноҳияҳои тобеи ҷумҳурӣ",
+"lat": 38.5500,
+"lon": 69.3200
+},
+{
+"id": "shahrinav",
+"name": "Шаҳринав",
+"aliases": ["Shahrinav", "Шахринав", "Шаҳринав"],
+"region": "Ноҳияҳои тобеи ҷумҳурӣ",
+"lat": 38.5700,
+"lon": 68.3300
+},
+{
+"id": "rudaki",
+"name": "Сомониён",
+"aliases": ["Somoniyon", "Rudaki", "Рудаки", "Сомониён"],
+"region": "Ноҳияҳои тобеи ҷумҳурӣ",
+"lat": 38.4300,
+"lon": 68.7800
+},
+{
+"id": "varzob",
+"name": "Варзоб",
+"aliases": ["Varzob", "Варзоб"],
+"region": "Ноҳияҳои тобеи ҷумҳурӣ",
+"lat": 38.7800,
+"lon": 68.8200
+},
+{
+"id": "jabor-rasulov",
+"name": "Меҳробод",
+"aliases": ["Mehrobod", "Proletarsk", "Пролетарск", "Ҷаббор Расулов"],
+"region": "Суғд",
+"lat": 40.1660,
+"lon": 69.5150
+},
+{
+"id": "devashtich",
+"name": "Ғончӣ",
+"aliases": ["Ghonchi", "Ganchi", "Ганчи", "Деваштич"],
+"region": "Суғд",
+"lat": 39.9500,
+"lon": 68.8100
+},
+{
+"id": "zafarobod",
+"name": "Зафаробод",
+"aliases": ["Zafarobod", "Зафарабад", "Зафаробод"],
+"region": "Суғд",
+"lat": 40.1800,
+"lon": 68.8500
+},
+{
+"id": "shahriston",
+"name": "Шаҳристон",
+"aliases": ["Shahriston", "Шахристан", "Шаҳристон"],
+"region": "Суғд",
+"lat": 39.7750,
+"lon": 68.8100
+},
+{
+"id": "ayni",
+"name": "Айнӣ",
+"aliases": ["Ayni", "Айнӣ"],
+"region": "Суғд",
+"lat": 39.3900,
+"lon": 68.5400
+},
+{
+"id": "kuhistoni-mastchoh",
+"name": "Мастчоҳ",
+"aliases": ["Mastchoh", "Mastchoh district", "Мастчох"],
+"region": "Суғд",
+"lat": 39.7400,
+"lon": 69.2000
+},
+{
+"id": "rasulov",
+"name": "Ҷаббор Расулов",
+"aliases": ["Jabbor Rasulov", "Ҷаббор Расулов"],
+"region": "Суғд",
+"lat": 40.1600,
+"lon": 69.5000
+},
+{
+"id": "khuroson",
+"name": "Обикиик",
+"aliases": ["Obikiik", "Абикиик", "Хуросон"],
+"region": "Хатлон",
+"lat": 37.8400,
+"lon": 68.8100
+},
+{
+"id": "jomi",
+"name": "Абдураҳмони Ҷомӣ",
+"aliases": ["Abdurahmoni Jomi", "Куйбышевский", "Куйбышев", "Ҷомӣ"],
+"region": "Хатлон",
+"lat": 37.9500,
+"lon": 68.8000
+},
+{
+"id": "yovon",
+"name": "Ёвон",
+"aliases": ["Yovon", "Яван", "Ёвон"],
+"region": "Хатлон",
+"lat": 38.3150,
+"lon": 69.0400
+},
+{
+"id": "khuroson-center",
+"name": "Бохтар",
+"aliases": ["Bokhtar", "Бохтар"],
+"region": "Хатлон",
+"lat": 37.8340,
+"lon": 68.7810
+},
+{
+"id": "khovaling-center",
+"name": "Сари Хосор",
+"aliases": ["Sari Khosor", "Сари Хосор"],
+"region": "Хатлон",
+"lat": 38.3500,
+"lon": 69.9000
+}
+]
